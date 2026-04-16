@@ -2,6 +2,7 @@
 .env
 *.env
 !.env.example
+ESPN Fantasy Baseball Cookies.txt
 
 # Python
 .venv/
@@ -11,6 +12,11 @@ __pycache__/
 *.pyo
 *.egg-info/
 .pytest_cache/
+
+#Test Scripts
+test_espn.py
+test_espn_pitchers.py
+test_espn_players.py
 
 # dbt
 target/
