@@ -1,0 +1,28 @@
+{
+    "season_year": 2026,
+    "season_opener": "2026-03-25",
+    "matchups": [
+        {"matchup_period": 1,  "start": "2026-03-25", "end": "2026-04-05"},
+        {"matchup_period": 2,  "start": "2026-04-06", "end": "2026-04-12"},
+        {"matchup_period": 3,  "start": "2026-04-13", "end": "2026-04-19"},
+        {"matchup_period": 4,  "start": "2026-04-20", "end": "2026-04-26"},
+        {"matchup_period": 5,  "start": "2026-04-27", "end": "2026-05-03"},
+        {"matchup_period": 6,  "start": "2026-05-04", "end": "2026-05-10"},
+        {"matchup_period": 7,  "start": "2026-05-11", "end": "2026-05-17"},
+        {"matchup_period": 8,  "start": "2026-05-18", "end": "2026-05-24"},
+        {"matchup_period": 9,  "start": "2026-05-25", "end": "2026-05-31"},
+        {"matchup_period": 10, "start": "2026-06-01", "end": "2026-06-07"},
+        {"matchup_period": 11, "start": "2026-06-08", "end": "2026-06-14"},
+        {"matchup_period": 12, "start": "2026-06-15", "end": "2026-06-21"},
+        {"matchup_period": 13, "start": "2026-06-22", "end": "2026-06-28"},
+        {"matchup_period": 14, "start": "2026-06-29", "end": "2026-07-05"},
+        {"matchup_period": 15, "start": "2026-07-06", "end": "2026-07-19"},
+        {"matchup_period": 16, "start": "2026-07-20", "end": "2026-07-26"},
+        {"matchup_period": 17, "start": "2026-07-27", "end": "2026-08-02"},
+        {"matchup_period": 18, "start": "2026-08-03", "end": "2026-08-09"},
+        {"matchup_period": 19, "start": "2026-08-10", "end": "2026-08-16"},
+        {"matchup_period": 20, "start": "2026-08-17", "end": "2026-08-23"},
+        {"matchup_period": 21, "start": "2026-08-24", "end": "2026-08-30"},
+        {"matchup_period": 22, "start": "2026-08-31", "end": "2026-09-06"}
+    ]
+}

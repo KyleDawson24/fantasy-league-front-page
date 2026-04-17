@@ -37,3 +37,4 @@ Thumbs.db
 *.csv
 *.json
 !dbt_league/**/*.json
+!config/*.json
