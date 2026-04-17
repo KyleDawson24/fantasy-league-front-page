@@ -89,12 +89,19 @@ def connect_espn():
     )
 
 
-def serialize_box_scores(league, scoring_period):
+def serialize_box_scores(league, scoring_period, matchup_period):
     """
     Pull box scores for a single scoring period and return a list of
     serialized matchup dicts.
+
+    Both scoring_period AND matchup_period must be passed to the ESPN API
+    to get historical player-level stats. Passing scoring_period alone
+    returns today's stats regardless of which period was requested.
     """
-    box_scores = league.box_scores(scoring_period=scoring_period)
+    box_scores = league.box_scores(
+        matchup_period=matchup_period,
+        scoring_period=scoring_period,
+    )
     matchups = []
 
     for matchup in box_scores:
@@ -189,7 +196,7 @@ def extract_matchup_period(league, matchup_period):
     records = []
     for sp in scoring_periods:
         print(f"  Pulling scoring period {sp}...")
-        matchup_data = serialize_box_scores(league, sp)
+        matchup_data = serialize_box_scores(league, sp, matchup_period)
         records.append({
             "scoring_period": sp,
             "matchup_period": matchup_period,
