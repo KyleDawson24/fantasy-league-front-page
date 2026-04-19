@@ -5,9 +5,11 @@ Pulls daily box score data for a given matchup period, serializes each
 scoring period's results as JSON, and inserts into ESPN_FANTASY.RAW.BOX_SCORES.
 """
 
+import argparse
+import csv
 import json
 import os
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 from dotenv import load_dotenv
 from espn_api.baseball import League
@@ -21,7 +23,6 @@ load_dotenv()
 ESPN_S2 = os.getenv("ESPN_S2")
 SWID = os.getenv("SWID")
 LEAGUE_ID = int(os.getenv("LEAGUE_ID"))
-YEAR = 2026
 
 SNOWFLAKE_CONFIG = {
     "account": os.getenv("SNOWFLAKE_ACCOUNT"),
@@ -36,28 +37,35 @@ SNOWFLAKE_CONFIG = {
 # Schedule loading
 # ---------------------------------------------------------------------------
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH = os.path.join(SCRIPT_DIR, "..", "config", "matchup_schedule.json")
+SEED_PATH = os.path.join(SCRIPT_DIR, "..", "dbt_league", "seeds", "matchup_schedule.csv")
 
 
-def load_schedule():
+def load_schedule(year):
     """
-    Load the matchup schedule from the external JSON config.
+    Load matchup schedule for a given season year from the dbt seed CSV.
     Returns (season_opener, matchups) where matchups is a list of
     (matchup_period, start_date, end_date) tuples.
+
+    season_opener is derived as the earliest start date for that year,
+    rather than being stored separately — one fewer thing to keep in sync.
     """
-    with open(CONFIG_PATH, "r") as f:
-        config = json.load(f)
-
-    season_opener = date.fromisoformat(config["season_opener"])
-
     matchups = []
-    for m in config["matchups"]:
-        matchups.append((
-            m["matchup_period"],
-            date.fromisoformat(m["start"]),
-            date.fromisoformat(m["end"]),
-        ))
+    with open(SEED_PATH, newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if int(row["season_year"]) != year:
+                continue
+            matchups.append((
+                int(row["matchup_period"]),
+                date.fromisoformat(row["start_date"]),
+                date.fromisoformat(row["end_date"]),
+            ))
 
+    if not matchups:
+        raise ValueError(f"No schedule found for season year {year}. "
+                         f"Check that {SEED_PATH} contains rows for {year}.")
+
+    season_opener = min(start for _, start, _ in matchups)
     return season_opener, matchups
 
 
@@ -66,24 +74,25 @@ def date_to_scoring_period(d, season_opener):
     return (d - season_opener).days + 1
 
 
-def get_scoring_periods(matchup_period, season_opener, matchups):
+def get_scoring_periods(matchup_period, year):
     """Return the list of scoring periods for a given matchup period."""
+    season_opener, matchups = load_schedule(year)
     for mp, start, end in matchups:
         if mp == matchup_period:
             num_days = (end - start).days + 1
             first_sp = date_to_scoring_period(start, season_opener)
             return list(range(first_sp, first_sp + num_days))
-    raise ValueError(f"Matchup period {matchup_period} not found in schedule.")
+    raise ValueError(f"Matchup period {matchup_period} not found in {year} schedule.")
 
 
 # ---------------------------------------------------------------------------
 # ESPN extraction
 # ---------------------------------------------------------------------------
-def connect_espn():
-    """Authenticate and return the ESPN league object."""
+def connect_espn(year):
+    """Authenticate and return the ESPN league object for the given season year."""
     return League(
         league_id=LEAGUE_ID,
-        year=YEAR,
+        year=year,
         espn_s2=ESPN_S2,
         swid=SWID,
     )
@@ -141,11 +150,12 @@ def serialize_box_scores(league, scoring_period, matchup_period):
 # ---------------------------------------------------------------------------
 # Snowflake loading
 # ---------------------------------------------------------------------------
-def load_to_snowflake(records, matchup_period):
+def load_to_snowflake(records, matchup_period, year):
     """
     Insert raw box score JSON records into Snowflake.
     Creates the target table if it doesn't exist.
-    Deletes any existing data for this matchup period first (idempotent reload).
+    Deletes existing data for this matchup_period + year before inserting,
+    making re-runs fully idempotent.
     """
     conn = snowflake.connector.connect(**SNOWFLAKE_CONFIG)
     cursor = conn.cursor()
@@ -153,6 +163,7 @@ def load_to_snowflake(records, matchup_period):
     try:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS BOX_SCORES (
+                season_year     INTEGER,
                 scoring_period  INTEGER,
                 matchup_period  INTEGER,
                 raw_json        VARIANT,
@@ -160,19 +171,21 @@ def load_to_snowflake(records, matchup_period):
             )
         """)
 
-        # Delete existing data for this matchup period so re-runs are idempotent
+        # Scoped delete: only remove this matchup period for this season year.
+        # Without the year filter, re-running 2025 MP1 would wipe 2026 MP1.
         cursor.execute(
-            "DELETE FROM BOX_SCORES WHERE matchup_period = %s",
-            (matchup_period,)
+            "DELETE FROM BOX_SCORES WHERE matchup_period = %s AND season_year = %s",
+            (matchup_period, year)
         )
 
         for record in records:
             cursor.execute(
                 """
-                INSERT INTO BOX_SCORES (scoring_period, matchup_period, raw_json)
-                SELECT %s, %s, PARSE_JSON(%s)
+                INSERT INTO BOX_SCORES (season_year, scoring_period, matchup_period, raw_json)
+                SELECT %s, %s, %s, PARSE_JSON(%s)
                 """,
                 (
+                    year,
                     record["scoring_period"],
                     record["matchup_period"],
                     json.dumps(record["matchups"]),
@@ -187,12 +200,11 @@ def load_to_snowflake(records, matchup_period):
         conn.close()
 
 
-def extract_matchup_period(league, matchup_period):
+def extract_matchup_period(league, matchup_period, year):
     """
     Extract all scoring periods for a matchup period and load to Snowflake.
     """
-    season_opener, matchups = load_schedule()
-    scoring_periods = get_scoring_periods(matchup_period, season_opener, matchups)
+    scoring_periods = get_scoring_periods(matchup_period, year)
 
     print(f"  Matchup period {matchup_period} spans {len(scoring_periods)} days "
           f"(scoring periods {scoring_periods[0]}-{scoring_periods[-1]})")
@@ -207,20 +219,20 @@ def extract_matchup_period(league, matchup_period):
             "matchups": matchup_data,
         })
 
-    load_to_snowflake(records, matchup_period)
+    load_to_snowflake(records, matchup_period, year)
 
 
-def get_recent_matchup_periods(lookback_days=21):
+def get_recent_matchup_periods(year, lookback_days=21):
     """
-    Return matchup periods whose end date falls within the last
-    `lookback_days` days (inclusive of today).
+    Return matchup periods for the given year whose end date falls within
+    the last `lookback_days` days (inclusive of today).
 
     This means:
     - Completed matchup periods are re-extracted (catches scoring adjustments)
     - Very old periods are skipped (no unnecessary API calls)
     - The current in-progress period is included if its end date is within range
     """
-    season_opener, matchups = load_schedule()
+    _, matchups = load_schedule(year)
     today = date.today()
     cutoff = today - timedelta(days=lookback_days)
 
@@ -233,27 +245,34 @@ def get_recent_matchup_periods(lookback_days=21):
 
 
 if __name__ == "__main__":
-    import sys
-
     # Usage:
-    #   py extract/extract_box_scores.py          -> extract recent matchup periods (last 21 days)
-    #   py extract/extract_box_scores.py 2         -> extract a specific matchup period
-    #   py extract/extract_box_scores.py 1 2 3     -> extract multiple specific matchup periods
+    #   py extract/extract_box_scores.py                        -> recent matchup periods, 2026
+    #   py extract/extract_box_scores.py --year 2025            -> recent matchup periods, 2025
+    #   py extract/extract_box_scores.py 2                      -> specific period, 2026
+    #   py extract/extract_box_scores.py --year 2025 1 2 3      -> specific periods, 2025
 
-    if len(sys.argv) > 1:
-        periods = [int(x) for x in sys.argv[1:]]
-        print(f"Extracting specified matchup periods: {periods}")
+    parser = argparse.ArgumentParser(description="Extract ESPN box scores into Snowflake.")
+    parser.add_argument("--year", type=int, default=date.today().year, help="Season year (default: current calendar year)")
+    parser.add_argument("periods", nargs="*", type=int, help="Specific matchup periods to extract")
+    args = parser.parse_args()
+
+    year = args.year
+
+    if args.periods:
+        periods = args.periods
+        print(f"Extracting specified matchup periods for {year}: {periods}")
     else:
-        periods = get_recent_matchup_periods()
+        periods = get_recent_matchup_periods(year)
         if not periods:
-            print("No completed matchup periods found in the last 21 days.")
+            print(f"No completed matchup periods found in the last 21 days for {year}.")
+            import sys
             sys.exit(0)
-        print(f"Extracting recent matchup periods: {periods}")
+        print(f"Extracting recent matchup periods for {year}: {periods}")
 
-    league = connect_espn()
+    league = connect_espn(year)
 
     for mp in periods:
         print(f"\nMatchup period {mp}:")
-        extract_matchup_period(league, mp)
+        extract_matchup_period(league, mp, year)
 
     print("\nDone.")

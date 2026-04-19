@@ -37,3 +37,19 @@ models:
       +materialized: view
     marts:
       +materialized: table
+
+seeds:
+  dbt_league:
+    matchup_schedule:
+      +column_types:
+        season_year: integer
+        matchup_period: integer
+        start_date: date
+        end_date: date
+        is_abnormal: boolean
+        is_playoff: boolean
+        playoff_round: varchar
+    stat_classification:
+      +column_types:
+        stat_name: varchar
+        category: varchar

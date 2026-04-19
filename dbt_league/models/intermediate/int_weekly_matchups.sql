@@ -10,6 +10,7 @@ with daily as (
 -- Get matchup pairings from the raw source (home vs away)
 matchup_pairs as (
     select distinct
+        season_year,
         scoring_period,
         matchup_period,
         m.value:home_team::string       as home_team,
@@ -34,6 +35,7 @@ weekly_scores as (
 home_side as (
     select
         mp.matchup_period,
+        mp.season_year,
         mp.home_team        as team_name,
         mp.home_team_id     as team_id,
         mp.away_team        as opponent_name,
@@ -42,7 +44,8 @@ home_side as (
         opp.total_points    as opponent_points
     from matchup_pairs mp
     inner join weekly_scores ws
-        on mp.matchup_period = ws.matchup_period
+        on mp.season_year = ws.season_year
+        and mp.matchup_period = ws.matchup_period
         and mp.home_team_id = ws.team_id
     inner join weekly_scores opp
         on mp.matchup_period = opp.matchup_period
@@ -51,6 +54,7 @@ home_side as (
 
 away_side as (
     select
+        mp.season_year,
         mp.matchup_period,
         mp.away_team        as team_name,
         mp.away_team_id     as team_id,
@@ -60,7 +64,8 @@ away_side as (
         opp.total_points    as opponent_points
     from matchup_pairs mp
     inner join weekly_scores ws
-        on mp.matchup_period = ws.matchup_period
+        on mp.season_year = ws.season_year
+        and mp.matchup_period = ws.matchup_period
         and mp.away_team_id = ws.team_id
     inner join weekly_scores opp
         on mp.matchup_period = opp.matchup_period

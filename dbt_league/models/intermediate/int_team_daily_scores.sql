@@ -15,6 +15,7 @@ active_players as (
 
 team_daily as (
     select
+        season_year,
         scoring_period,
         matchup_period,
         team_name,
@@ -35,7 +36,7 @@ team_daily as (
         count(*) as active_player_count
 
     from active_players
-    group by 1, 2, 3, 4
+    group by 1, 2, 3, 4, 5
 )
 
 select * from team_daily

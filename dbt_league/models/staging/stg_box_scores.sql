@@ -4,6 +4,7 @@
 
 with raw as (
     select
+        season_year,
         scoring_period,
         matchup_period,
         raw_json
@@ -12,6 +13,7 @@ with raw as (
 
 matchups as (
     select
+        season_year,
         scoring_period,
         matchup_period,
         m.value as matchup
@@ -21,6 +23,7 @@ matchups as (
 
 home_players as (
     select
+        season_year,
         scoring_period,
         matchup_period,
         matchup:home_team::string       as team_name,
@@ -39,6 +42,7 @@ home_players as (
 
 away_players as (
     select
+        season_year,
         scoring_period,
         matchup_period,
         matchup:away_team::string       as team_name,

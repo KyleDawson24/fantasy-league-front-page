@@ -9,6 +9,7 @@ with daily as (
 
 weekly as (
     select
+        season_year,
         matchup_period,
         team_name,
         team_id,
@@ -17,7 +18,7 @@ weekly as (
         sum(pitching_points)    as pitching_points,
         count(distinct scoring_period) as days_in_period
     from daily
-    group by 1, 2, 3
+    group by 1, 2, 3, 4
 )
 
 select * from weekly

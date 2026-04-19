@@ -108,11 +108,14 @@ def find_lucky_bastard(scores, matchups):
 
 def check_fair_and_just(scores, matchups):
     """
-    Fair and Just League: did every top-half team win
+    Fair and Just League: did every top-half team (by score) win,
     and every bottom-half team lose?
+    
+    Uses active matchup count (not team count) as the cutoff,
+    which correctly handles odd-team leagues with a bye week.
     """
     ranked = sorted(scores, key=lambda x: x['total_points'], reverse=True)
-    num_matchups = len(ranked) // 2
+    num_matchups = len(matchups) // 2  # <-- was: len(ranked) // 2
 
     for i, team in enumerate(ranked):
         matchup = next(
@@ -176,10 +179,11 @@ def generate_summary(matchup_period, scores, matchups):
 
     # Fair and Just League
     if check_fair_and_just(scores, matchups):
+        num_matchups = len(matchups) // 2
         lines.extend([
             f"",
-            f"[b]A FAIR AND JUST LEAGUE![/b] The top {len(scores) // 2} scoring teams "
-            f"all won this week, and the bottom {len(scores) // 2} all lost.",
+            f"[b]A FAIR AND JUST LEAGUE![/b] The top {num_matchups} scoring teams "
+            f"all won this week, and the bottom {num_matchups} all lost.",
         ])
 
     return "\n".join(lines)
