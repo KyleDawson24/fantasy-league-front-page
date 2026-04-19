@@ -1,0 +1,74 @@
+stat_name,stat_category,stat_description
+1B,hitting,Singles
+2B,hitting,Doubles
+3B,hitting,Triples
+AB,hitting,At Bats
+AVG,hitting,Batting Average
+B_BB,hitting,Walks (Batter)
+B_IBB,hitting,Intentional Walks (Batter)
+B_SO,hitting,Strikeouts (Batter)
+CS,hitting,Caught Stealing
+CYC,hitting,Cycles
+GDP,hitting,Grounded Into Double Play
+H,hitting,Hits
+HBP,hitting,Hit By Pitch
+HR,hitting,Home Runs
+OBP,hitting,On Base Percentage
+OPS,hitting,On Base Plus Slugging
+PA,hitting,Plate Appearances
+PPA,hitting,Pitches Per Plate Appearance
+PS,hitting,Pitches Seen
+R,hitting,Runs
+RBI,hitting,Runs Batted In
+RC,hitting,Runs Created
+SAC,hitting,Sacrifice Hits and Flies
+SB,hitting,Stolen Bases
+SB-CS,hitting,Net Stolen Bases
+SF,hitting,Sacrifice Flies
+SH,hitting,Sacrifice Hits
+SLG,hitting,Slugging Percentage
+TB,hitting,Total Bases
+XBH,hitting,Extra Base Hits
+W,pitching,Wins
+L,pitching,Losses
+K,pitching,Strikeouts (Pitcher)
+ERA,pitching,Earned Run Average
+WHIP,pitching,Walks Plus Hits Per Inning
+ER,pitching,Earned Runs
+OUTS,pitching,Outs Recorded
+QS,pitching,Quality Starts
+SV,pitching,Saves
+SVO,pitching,Save Opportunities
+SV%,pitching,Save Percentage
+HLD,pitching,Holds
+SVHD,pitching,Saves Plus Holds
+BLK,pitching,Balks
+BLSV,pitching,Blown Saves
+CG,pitching,Complete Games
+GP,pitching,Games Pitched
+GS,pitching,Games Started
+K/9,pitching,Strikeouts Per 9 Innings
+K/BB,pitching,Strikeout to Walk Ratio
+OBA,pitching,Opponent Batting Average
+OOBP,pitching,Opponent On Base Percentage
+P,pitching,Pitches Thrown
+PG,pitching,Pitches Per Game
+PK,pitching,Pickoffs
+P_BB,pitching,Walks Allowed
+P_H,pitching,Hits Allowed
+P_HR,pitching,Home Runs Allowed
+P_IBB,pitching,Intentional Walks Allowed
+P_R,pitching,Runs Allowed
+TBF,pitching,Total Batters Faced
+WP,pitching,Wild Pitches
+WPCT,pitching,Win Percentage
+A,fielding,Assists
+PO,fielding,Putouts
+E,fielding,Errors
+DP,fielding,Double Plays
+FPCT,fielding,Fielding Percentage
+TC,fielding,Total Chances
+OFA,fielding,Outfield Assists
+G,hitting,Games Played by Batters
+B_G_W,hitting,Batter Games Won
+B_G_L,hitting,Batter Games Lost

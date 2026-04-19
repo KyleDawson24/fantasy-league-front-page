@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: raw
+    database: ESPN_FANTASY
+    schema: RAW
+    tables:
+      - name: box_scores
+        description: "Raw ESPN Fantasy box score JSON, one row per scoring period. Each row contains all matchups for that day with full player lineups and stat breakdowns."

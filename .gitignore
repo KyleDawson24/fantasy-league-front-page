@@ -17,6 +17,7 @@ __pycache__/
 test_espn.py
 test_espn_pitchers.py
 test_espn_players.py
+extract/debug_stats_keys.py
 
 # dbt
 target/
@@ -38,3 +39,4 @@ Thumbs.db
 *.json
 !dbt_league/**/*.json
 !config/*.json
+!dbt_league/seeds/*.csv
