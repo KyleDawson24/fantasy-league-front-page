@@ -7,7 +7,7 @@ scoring period's results as JSON, and inserts into ESPN_FANTASY.RAW.BOX_SCORES.
 
 import json
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from dotenv import load_dotenv
 from espn_api.baseball import League
@@ -141,10 +141,11 @@ def serialize_box_scores(league, scoring_period, matchup_period):
 # ---------------------------------------------------------------------------
 # Snowflake loading
 # ---------------------------------------------------------------------------
-def load_to_snowflake(records):
+def load_to_snowflake(records, matchup_period):
     """
     Insert raw box score JSON records into Snowflake.
     Creates the target table if it doesn't exist.
+    Deletes any existing data for this matchup period first (idempotent reload).
     """
     conn = snowflake.connector.connect(**SNOWFLAKE_CONFIG)
     cursor = conn.cursor()
@@ -158,6 +159,12 @@ def load_to_snowflake(records):
                 loaded_at       TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
             )
         """)
+
+        # Delete existing data for this matchup period so re-runs are idempotent
+        cursor.execute(
+            "DELETE FROM BOX_SCORES WHERE matchup_period = %s",
+            (matchup_period,)
+        )
 
         for record in records:
             cursor.execute(
@@ -180,9 +187,6 @@ def load_to_snowflake(records):
         conn.close()
 
 
-# ---------------------------------------------------------------------------
-# Orchestration
-# ---------------------------------------------------------------------------
 def extract_matchup_period(league, matchup_period):
     """
     Extract all scoring periods for a matchup period and load to Snowflake.
@@ -203,17 +207,53 @@ def extract_matchup_period(league, matchup_period):
             "matchups": matchup_data,
         })
 
-    load_to_snowflake(records)
+    load_to_snowflake(records, matchup_period)
+
+
+def get_recent_matchup_periods(lookback_days=21):
+    """
+    Return matchup periods whose end date falls within the last
+    `lookback_days` days (inclusive of today).
+
+    This means:
+    - Completed matchup periods are re-extracted (catches scoring adjustments)
+    - Very old periods are skipped (no unnecessary API calls)
+    - The current in-progress period is included if its end date is within range
+    """
+    season_opener, matchups = load_schedule()
+    today = date.today()
+    cutoff = today - timedelta(days=lookback_days)
+
+    recent = []
+    for mp, start, end in matchups:
+        if end >= cutoff and end <= today:
+            recent.append(mp)
+
+    return sorted(recent)
 
 
 if __name__ == "__main__":
-    # ------------------------------------------------------------------
-    # Set which matchup period to extract.
-    # The schedule JSON handles variable-length weeks automatically.
-    # ------------------------------------------------------------------
-    MATCHUP_PERIOD = 2
+    import sys
 
-    print(f"Extracting matchup period {MATCHUP_PERIOD}")
+    # Usage:
+    #   py extract/extract_box_scores.py          -> extract recent matchup periods (last 21 days)
+    #   py extract/extract_box_scores.py 2         -> extract a specific matchup period
+    #   py extract/extract_box_scores.py 1 2 3     -> extract multiple specific matchup periods
+
+    if len(sys.argv) > 1:
+        periods = [int(x) for x in sys.argv[1:]]
+        print(f"Extracting specified matchup periods: {periods}")
+    else:
+        periods = get_recent_matchup_periods()
+        if not periods:
+            print("No completed matchup periods found in the last 21 days.")
+            sys.exit(0)
+        print(f"Extracting recent matchup periods: {periods}")
+
     league = connect_espn()
-    extract_matchup_period(league, MATCHUP_PERIOD)
-    print("Done.")
+
+    for mp in periods:
+        print(f"\nMatchup period {mp}:")
+        extract_matchup_period(league, mp)
+
+    print("\nDone.")
